@@ -26,9 +26,15 @@ pub async fn init_db(
         .connect(&db_url)
         .await?;
 
+    // Create persistent tables
     sqlx::query(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
+         CREATE TABLE IF NOT EXISTS process_history (
+            name TEXT PRIMARY KEY,
+            read_bytes INTEGER NOT NULL DEFAULT 0,
+            write_bytes INTEGER NOT NULL DEFAULT 0
+         );
          CREATE TABLE IF NOT EXISTS disk_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp REAL NOT NULL,
@@ -37,37 +43,12 @@ pub async fn init_db(
             read_speed INTEGER NOT NULL,
             write_speed INTEGER NOT NULL
          );
-         CREATE TABLE IF NOT EXISTS alltime_totals (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            read_bytes INTEGER NOT NULL DEFAULT 0,
-            write_bytes INTEGER NOT NULL DEFAULT 0
-         );
-         CREATE TABLE IF NOT EXISTS process_history (
-            name TEXT PRIMARY KEY,
-            read_bytes INTEGER NOT NULL DEFAULT 0,
-            write_bytes INTEGER NOT NULL DEFAULT 0
-         );
-         INSERT OR IGNORE INTO alltime_totals (id, read_bytes, write_bytes) VALUES (1, 0, 0);",
+         CREATE INDEX IF NOT EXISTS idx_disk_stats_timestamp ON disk_stats(timestamp);",
     )
     .execute(&pool)
     .await?;
 
-    // Recover previous session data if any
-    // Get max values from disk_stats (previous session)
-    let (read_total, write_total) = get_max_session_totals(&pool).await?;
-
-    if read_total > 0 || write_total > 0 {
-        println!("[DB] Recovering previous session data: Read={} bytes, Write={} bytes", read_total, write_total);
-        match update_alltime_totals(&pool, read_total, write_total).await {
-            Ok(_) => println!("[DB] Successfully updated all-time totals."),
-            Err(e) => eprintln!("[DB] Failed to update all-time totals: {}", e),
-        }
-    } else {
-        println!("[DB] No previous session data to recover.");
-    }
-
-    // Clear disk_stats for the new session
-    sqlx::query("DELETE FROM disk_stats").execute(&pool).await?;
+    println!("[DB] Database initialized successfully.");
 
     Ok(pool)
 }
@@ -76,71 +57,39 @@ pub async fn insert_stats_batch(
     pool: &Pool<Sqlite>,
     stats: &[DiskStat],
 ) -> Result<(), sqlx::Error> {
-    let mut transaction = pool.begin().await?;
-
-    for stat in stats {
-        sqlx::query(
-            "INSERT INTO disk_stats (timestamp, read_bytes, write_bytes, read_speed, write_speed)
-             VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(stat.timestamp)
-        .bind(stat.read_bytes as i64)
-        .bind(stat.write_bytes as i64)
-        .bind(stat.read_speed as i64)
-        .bind(stat.write_speed as i64)
-        .execute(&mut *transaction)
-        .await?;
+    if stats.is_empty() {
+        return Ok(());
     }
 
-    transaction.commit().await?;
+    let mut query_builder = sqlx::QueryBuilder::new(
+        "INSERT INTO disk_stats (timestamp, read_bytes, write_bytes, read_speed, write_speed) "
+    );
+
+    query_builder.push_values(stats, |mut b, stat| {
+        b.push_bind(stat.timestamp)
+         .push_bind(stat.read_bytes as i64)
+         .push_bind(stat.write_bytes as i64)
+         .push_bind(stat.read_speed as i64)
+         .push_bind(stat.write_speed as i64);
+    });
+
+    let query = query_builder.build();
+    query.execute(pool).await?;
+
     Ok(())
 }
 
-/// Gets the maximum session totals from disk_stats (current session totals before reset)
-pub async fn get_max_session_totals(pool: &Pool<Sqlite>) -> Result<(u64, u64), sqlx::Error> {
-    // Get the maximum values from the database (cumulative totals for current session)
+// get_max_session_totals removed as it's no longer used for recovery.
+// We instead rely on periodic delta flushes to process_history.
+
+/// Gets the all-time total read and write bytes from the process_history table
+pub async fn get_alltime_totals(pool: &Pool<Sqlite>) -> Result<(u64, u64), sqlx::Error> {
     let result: (Option<i64>, Option<i64>) =
-        sqlx::query_as("SELECT MAX(read_bytes), MAX(write_bytes) FROM disk_stats")
+        sqlx::query_as("SELECT SUM(read_bytes), SUM(write_bytes) FROM process_history")
             .fetch_one(pool)
             .await?;
 
-    let read_total = result.0.unwrap_or(0) as u64;
-    let write_total = result.1.unwrap_or(0) as u64;
-
-    Ok((read_total, write_total))
-}
-
-/// Updates the all-time totals by adding the session totals
-pub async fn update_alltime_totals(
-    pool: &Pool<Sqlite>,
-    read_bytes_delta: u64,
-    write_bytes_delta: u64,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        "UPDATE alltime_totals SET 
-            read_bytes = read_bytes + ?, 
-            write_bytes = write_bytes + ? 
-         WHERE id = 1",
-    )
-    .bind(read_bytes_delta as i64)
-    .bind(write_bytes_delta as i64)
-    .execute(pool)
-    .await?;
-
-    Ok(())
-}
-
-/// Gets the all-time total read and write bytes from the database
-/// Returns (total_read_bytes, total_write_bytes)
-pub async fn get_alltime_totals(pool: &Pool<Sqlite>) -> Result<(u64, u64), sqlx::Error> {
-    // Get the cumulative totals from alltime_totals table
-    let result: (i64, i64) =
-        sqlx::query_as("SELECT read_bytes, write_bytes FROM alltime_totals WHERE id = 1")
-            .fetch_one(pool)
-            .await
-            .unwrap_or((0, 0));
-
-    Ok((result.0 as u64, result.1 as u64))
+    Ok((result.0.unwrap_or(0) as u64, result.1.unwrap_or(0) as u64))
 }
 
 /// Resets the database by clearing all stats and returns database size info
@@ -158,18 +107,29 @@ pub async fn reset_database_with_size(
     let size_before = get_db_total_size(&db_path, &wal_path, &shm_path)?;
 
     // Reset the database
-    clear_disk_stats(pool).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
-    
-    // Reset all-time totals
-    clear_alltime_totals(pool).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    clear_disk_stats(pool)
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+
+    // Reset process history
+    sqlx::query("DELETE FROM process_history")
+        .execute(pool)
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
 
     // Run VACUUM to reclaim space
     println!("[DB] Running VACUUM to reclaim space...");
-    sqlx::query("VACUUM").execute(pool).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    sqlx::query("VACUUM")
+        .execute(pool)
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
 
     // Checkpoint WAL to ensure everything is written to the main file
     println!("[DB] Running WAL Checkpoint...");
-    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)").execute(pool).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(pool)
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
 
     // Note: We can't actually drop the pool reference since it's borrowed.
     // The pool will be dropped when all references are released.
@@ -219,7 +179,7 @@ pub fn get_database_size(
     let shm_path = app_data_dir.join("drive_analytics.db-shm");
 
     let size = get_db_total_size(&db_path, &wal_path, &shm_path)?;
-    
+
     // Return same format as reset_database_with_size for consistency
     Ok((size, size))
 }
@@ -229,18 +189,14 @@ pub async fn clear_disk_stats(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub async fn clear_alltime_totals(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE alltime_totals SET read_bytes = 0, write_bytes = 0 WHERE id = 1")
-        .execute(pool)
-        .await?;
-    sqlx::query("DELETE FROM process_history").execute(pool).await?;
-    Ok(())
-}
-
-pub async fn get_process_history(pool: &Pool<Sqlite>) -> Result<std::collections::HashMap<String, (u64, u64)>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, (String, i64, i64)>("SELECT name, read_bytes, write_bytes FROM process_history")
-        .fetch_all(pool)
-        .await?;
+pub async fn get_process_history(
+    pool: &Pool<Sqlite>,
+) -> Result<std::collections::HashMap<String, (u64, u64)>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, (String, i64, i64)>(
+        "SELECT name, read_bytes, write_bytes FROM process_history",
+    )
+    .fetch_all(pool)
+    .await?;
 
     let mut map = std::collections::HashMap::new();
     for (name, read, write) in rows {
@@ -253,23 +209,53 @@ pub async fn update_process_history(
     pool: &Pool<Sqlite>,
     stats: std::collections::HashMap<String, (u64, u64)>,
 ) -> Result<(), sqlx::Error> {
-    let mut transaction = pool.begin().await?;
-
-    for (name, (read, write)) in stats {
-        sqlx::query(
-            "INSERT INTO process_history (name, read_bytes, write_bytes) 
-             VALUES (?, ?, ?)
-             ON CONFLICT(name) DO UPDATE SET
-             read_bytes = read_bytes + excluded.read_bytes,
-             write_bytes = write_bytes + excluded.write_bytes",
-        )
-        .bind(name)
-        .bind(read as i64)
-        .bind(write as i64)
-        .execute(&mut *transaction)
-        .await?;
+    if stats.is_empty() {
+        return Ok(());
     }
 
-    transaction.commit().await?;
+    let mut query_builder = sqlx::QueryBuilder::new(
+        "INSERT INTO process_history (name, read_bytes, write_bytes) "
+    );
+
+    query_builder.push_values(stats.iter(), |mut b, (name, (read, write))| {
+        b.push_bind(name)
+         .push_bind(*read as i64)
+         .push_bind(*write as i64);
+    });
+
+    query_builder.push(
+        " ON CONFLICT(name) DO UPDATE SET
+          read_bytes = read_bytes + excluded.read_bytes,
+          write_bytes = write_bytes + excluded.write_bytes"
+    );
+
+    let query = query_builder.build();
+    query.execute(pool).await?;
+
     Ok(())
+}
+
+/// Eski verileri temizle (belirtilen gün sayısından eski)
+/// Varsayılan: 7 gün
+pub async fn cleanup_old_data(pool: &Pool<Sqlite>, days: u64) -> Result<u64, sqlx::Error> {
+    let cutoff = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64()
+        - (days as f64 * 24.0 * 3600.0);
+
+    let result = sqlx::query("DELETE FROM disk_stats WHERE timestamp < ?")
+        .bind(cutoff)
+        .execute(pool)
+        .await?;
+
+    let deleted = result.rows_affected();
+    if deleted > 0 {
+        println!(
+            "[DB] Cleaned up {} old records (older than {} days)",
+            deleted, days
+        );
+    }
+
+    Ok(deleted)
 }

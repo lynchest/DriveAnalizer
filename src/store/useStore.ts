@@ -81,15 +81,19 @@ export const useStore = create<AppState>()(
             appMetrics: { total_disk_size: 0, ram_usage: 0, cpu_usage: 0 },
 
             updateStats: (stat: DiskStat) => set((state) => {
-                const newTimestamps = [...state.history[0], stat.timestamp];
-                const newReads = [...state.history[1], stat.read_speed];
-                const newWrites = [...state.history[2], stat.write_speed];
-
-                if (newTimestamps.length > MAX_HISTORY_POINTS) {
-                    newTimestamps.shift();
-                    newReads.shift();
-                    newWrites.shift();
-                }
+                // Daha verimli array manipülasyonu - gereksiz kopyalamadan kaçın
+                const [timestamps, reads, writes] = state.history;
+                const needTrim = timestamps.length >= MAX_HISTORY_POINTS;
+                
+                const newTimestamps = needTrim 
+                    ? [...timestamps.slice(1), stat.timestamp]
+                    : [...timestamps, stat.timestamp];
+                const newReads = needTrim 
+                    ? [...reads.slice(1), stat.read_speed]
+                    : [...reads, stat.read_speed];
+                const newWrites = needTrim 
+                    ? [...writes.slice(1), stat.write_speed]
+                    : [...writes, stat.write_speed];
 
                 return {
                     currentStats: stat,

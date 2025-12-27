@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 // Removed unused imports to prevent potential load issues if they fail
 import { invoke } from '@tauri-apps/api/core';
-import { useStore, DataDisplayMode, AllTimeTotals } from '../store/useStore';
+import { useStore, DataDisplayMode } from '../store/useStore';
+import { formatBytes } from '../utils/format';
 import './Settings.css';
 
 const Settings: React.FC = () => {
@@ -212,7 +213,7 @@ const Settings: React.FC = () => {
                             <div className="db-size-info">
                                 <p className="db-size-label">Veritabanı Boyutu:</p>
                                 <p className="db-size-value">
-                                    {(dbSize / 1024 / 1024).toFixed(2)} MB
+                                    {formatBytes(dbSize)}
                                 </p>
                             </div>
                         ) : (

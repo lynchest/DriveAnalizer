@@ -1,18 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
-import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/core';
+import { useState, useMemo } from 'react';
 import { useStore, ProcessInfo } from '../store/useStore';
+import { formatBytes } from '../utils/format';
 import './TopProcesses.css';
-
-// Format bytes to human readable format
-function formatBytes(bytes: number, decimals = 2): string {
-    if (!+bytes) return '0 B';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-}
 
 // Get initials for process icon
 function getInitials(name: string): string {
@@ -41,34 +30,9 @@ type SortKey = 'name' | 'read_bytes' | 'write_bytes' | 'total_bytes';
 type SortOrder = 'asc' | 'desc';
 
 function TopProcesses() {
-    const { topProcesses, setTopProcesses, dataDisplayMode, processHistory, setProcessHistory } = useStore();
+    const { topProcesses, dataDisplayMode, processHistory } = useStore();
     const [sortKey, setSortKey] = useState<SortKey>('total_bytes');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-
-    // Fetch process history when mode changes to 'alltime'
-    useEffect(() => {
-        if (dataDisplayMode === 'alltime') {
-            invoke<Record<string, [number, number]>>('get_process_history')
-                .then((history) => {
-                    const formattedHistory: Record<string, { read_bytes: number, write_bytes: number }> = {};
-                    Object.entries(history).forEach(([name, [read, write]]) => {
-                        formattedHistory[name] = { read_bytes: read, write_bytes: write };
-                    });
-                    setProcessHistory(formattedHistory);
-                })
-                .catch(console.error);
-        }
-    }, [dataDisplayMode, setProcessHistory]);
-
-    useEffect(() => {
-        const unlisten = listen<ProcessInfo[]>('top-processes', (event) => {
-            setTopProcesses(event.payload);
-        });
-
-        return () => {
-            unlisten.then((f) => f());
-        };
-    }, [setTopProcesses]);
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {

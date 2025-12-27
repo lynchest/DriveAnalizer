@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import uPlot from 'uplot';
 import 'uplot/dist/uPlot.min.css';
+import { formatBytes } from '../utils/format';
 import './Chart.css';
 
 interface ChartProps {
@@ -104,15 +105,5 @@ const Chart: React.FC<ChartProps> = ({ data }) => {
         </div>
     );
 };
-
-// Helper for formatting bytes
-function formatBytes(bytes: number, decimals = 2) {
-    if (!+bytes) return '0 B';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-}
 
 export default Chart;
