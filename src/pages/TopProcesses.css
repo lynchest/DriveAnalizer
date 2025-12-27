@@ -1,0 +1,293 @@
+.top-processes {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.top-processes__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.top-processes__title-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.top-processes__header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.top-processes__header p {
+    color: #888;
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0 0;
+}
+
+/* Data Mode Badge - Simplified */
+.data-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.data-mode-badge.session {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.2);
+}
+
+.data-mode-badge.alltime {
+    background: rgba(168, 85, 247, 0.1);
+    color: #a855f7;
+    border-color: rgba(168, 85, 247, 0.2);
+}
+
+/* Table Container - Matches Settings Section */
+.table-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden; /* For rounded corners */
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Process Table - Simplified */
+.process-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.process-table thead {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.process-table th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: #888;
+    white-space: nowrap;
+}
+
+.process-table th:nth-child(1),
+.process-table th:nth-child(3),
+.process-table th:nth-child(4),
+.process-table th:nth-child(5) {
+    text-align: right;
+}
+
+.process-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.process-table th.sortable:hover {
+    color: #fff;
+}
+
+.process-table th:last-child,
+.process-table td:last-child {
+    text-align: right;
+}
+
+.sort-indicator {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.process-table th.sortable:hover .sort-indicator,
+.sort-indicator.active {
+    opacity: 1;
+}
+
+.process-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background-color 0.2s;
+}
+
+.process-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.process-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.process-table td {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+    color: #e0e0e0;
+    vertical-align: middle;
+}
+
+/* Process Name Cell */
+.process-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.process-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.process-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 2px;
+}
+
+.process-name {
+    font-weight: 500;
+    color: #fff;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.process-path {
+    font-size: 0.75rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.process-table td:nth-child(1) {
+    text-align: right;
+}
+
+.process-table td:nth-child(3),
+.process-table td:nth-child(4),
+.process-table td:nth-child(5) {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+    text-align: right;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.process-table td:nth-child(3) {
+    color: #38bdf8; /* Read */
+}
+
+.process-table td:nth-child(4) {
+    color: #f472b6; /* Write */
+}
+
+.process-table td.highlight {
+    color: #a78bfa; /* Total */
+    font-weight: 600;
+}
+
+/* Rank badge - Simplified */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+}
+
+.rank-badge.gold {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+}
+
+.rank-badge.silver {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.1);
+}
+
+.rank-badge.bronze {
+    color: #fb923c;
+    background: rgba(251, 146, 60, 0.1);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #666;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.empty-state__icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+    filter: grayscale(100%);
+}
+
+.empty-state h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+    margin: 0;
+}

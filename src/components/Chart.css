@@ -1,0 +1,61 @@
+.chart-container {
+    background: rgba(30, 30, 35, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem 1.5rem 2.5rem 1.5rem; /* Bottom padding increased */
+    margin-top: 1.5rem;
+    width: 100%;
+    min-width: 0; 
+    box-sizing: border-box;
+}
+
+.chart-wrapper {
+    width: 100%;
+    min-height: 320px;
+    position: relative;
+}
+
+
+/* uPlot Overrides for Dark Mode */
+.uplot {
+    font-family: 'Inter', sans-serif !important;
+    display: flex !important;
+    flex-direction: column;
+}
+
+.uplot .legend {
+    color: #e0e0e0 !important;
+    width: 100%;
+    display: flex !important;
+    justify-content: center;
+    order: -1; /* Move legend above the chart */
+    margin-bottom: 1rem;
+    margin-top: 0.5rem;
+}
+
+.uplot .title {
+    order: -2; /* Keep title at the very top */
+    margin-bottom: 0.5rem !important;
+}
+
+.uplot .legend tr {
+    display: flex !important;
+    gap: 1.5rem;
+    border: none !important;
+}
+
+.uplot .legend th,
+.uplot .legend td {
+    padding: 2px 4px !important;
+    font-size: 0.85rem;
+}
+
+.uplot .legend .u-value {
+    font-weight: 600;
+    color: #ffffff;
+    margin-left: 4px;
+}
+
+.uplot .legend .u-label {
+    color: #a0a0a0;
+}

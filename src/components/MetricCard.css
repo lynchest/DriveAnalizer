@@ -1,0 +1,69 @@
+.metric-card {
+    background: rgba(30, 30, 35, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.metric-card__label {
+    font-size: 0.85rem;
+    color: #a0a0a0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.metric-card__body {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.metric-card__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+}
+
+.metric-card__unit {
+    font-size: 1rem;
+    color: #808080;
+    font-weight: 400;
+}
+
+/* Variants */
+.metric-card--primary .metric-card__value {
+    color: #4cc9f0; /* Cyan */
+}
+
+.metric-card--secondary .metric-card__value {
+    color: #f72585; /* Pink/Magenta */
+}
+
+.metric-card--accent .metric-card__value {
+    color: #7209b7; /* Purple */
+}
+
+.metric-card--success .metric-card__value {
+    color: #4ade80; /* Green */
+}
+
+.metric-card--warning .metric-card__value {
+    color: #facc15; /* Yellow/Orange */
+}
+
+.metric-card--danger .metric-card__value {
+    color: #f87171; /* Red */
+}

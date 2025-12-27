@@ -1,0 +1,120 @@
+/* Layout Grid */
+.layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 100vh;
+    width: 100vw;
+    background-color: #0d0d10;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.layout__sidebar {
+    background: #131318;
+    border-right: 1px solid #2a2a30;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+}
+
+.layout__logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    color: #e0e0e0;
+}
+
+.layout__logo span {
+    color: #4cc9f0;
+}
+
+.layout__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-item {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: #a0a0a0;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.nav-item.active {
+    background: rgba(76, 201, 240, 0.1);
+    color: #4cc9f0;
+}
+
+.layout__footer {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    border-top: 1px solid #2a2a30;
+}
+
+.app-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: #808080;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    font-weight: 500;
+}
+
+.metric-value {
+    color: #e0e0e0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Main Content */
+.layout__content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.layout__header {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    background: rgba(13, 13, 16, 0.8);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2a2a30;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.layout__header h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.layout__body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal page scroll */
+    padding: 2rem;
+}
+
