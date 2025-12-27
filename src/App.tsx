@@ -151,9 +151,6 @@ function App() {
             <Chart data={history} />
             
             {/* Debug/Info Section */}
-            <div style={{ marginTop: '2rem', color: '#666', fontSize: '0.8rem' }}>
-              <p>Live Data Active. Data points: {history[0].length} | Mode: {dataDisplayMode === 'session' ? 'Oturum' : 'Tüm Zamanlar'}</p>
-            </div>
           </>
         );
       case 'processes':

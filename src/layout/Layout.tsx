@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useStore } from '../store/useStore';
 import './Layout.css';
+import logo from '../assets/logo.png';
 
 interface LayoutProps {
     children: ReactNode;
@@ -13,7 +14,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="layout">
             <aside className="layout__sidebar">
                 <div className="layout__logo">
-                    Drive<span>Analizer</span>
+                    <img src={logo} alt="DriveAnalizer" className="layout__logo-img" />
+                    <div className="layout__logo-text">Drive<span>Analizer</span></div>
                 </div>
                 <nav className="layout__nav">
                     <a 

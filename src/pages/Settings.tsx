@@ -141,11 +141,11 @@ const Settings: React.FC = () => {
                     </button>
                     
                     <button 
-                        className={`size-btn ${isSelected(1280, 800) ? 'active' : ''}`}
-                        onClick={() => handleResize(1280, 800)}
+                        className={`size-btn ${isSelected(1280, 900) ? 'active' : ''}`}
+                        onClick={() => handleResize(1280, 900)}
                     >
                         <div className="size-label">Büyük</div>
-                        <div className="size-value">1280 x 800</div>
+                        <div className="size-value">1280 x 900</div>
                     </button>
 
                     <button 
