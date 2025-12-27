@@ -1,7 +1,10 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 use sqlx::{Pool, Sqlite};
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 use tauri::Manager;
 
 mod db;
@@ -13,9 +16,9 @@ use models::AllTimeTotals;
 use models::AppMetrics;
 use models::ResetDatabaseResponse;
 use process_monitor::ProcessAccumulators;
-use sysinfo::{System, Pid, ProcessesToUpdate};
 use std::env;
 use std::fs;
+use sysinfo::{Pid, ProcessesToUpdate, System};
 
 // Database pool state wrapper
 pub struct DbPool(pub Arc<Mutex<Option<Pool<Sqlite>>>>);
@@ -82,7 +85,9 @@ async fn save_session_to_alltime(db_pool: tauri::State<'_, DbPool>) -> Result<()
 }
 
 #[tauri::command]
-async fn get_process_history(db_pool: tauri::State<'_, DbPool>) -> Result<std::collections::HashMap<String, (u64, u64)>, String> {
+async fn get_process_history(
+    db_pool: tauri::State<'_, DbPool>,
+) -> Result<std::collections::HashMap<String, (u64, u64)>, String> {
     let pool_opt = {
         let guard = db_pool.0.lock().map_err(|e| format!("Lock error: {}", e))?;
         guard.clone()
@@ -114,7 +119,7 @@ fn get_app_metrics(
     system_state: tauri::State<'_, SystemState>,
 ) -> Result<AppMetrics, String> {
     let mut sys = system_state.0.lock().map_err(|e| e.to_string())?;
-    
+
     let pid = Pid::from_u32(std::process::id());
     sys.refresh_processes(ProcessesToUpdate::Some(&[pid]));
 
@@ -187,7 +192,6 @@ pub fn run() {
     let reset_signal = Arc::new(AtomicBool::new(false));
     let reset_signal_state = ResetSignal(Arc::clone(&reset_signal));
     let reset_signal_monitor = Arc::clone(&reset_signal);
-    let reset_signal_process = Arc::clone(&reset_signal);
 
     // Create shared shutdown signal
     let shutdown_signal = Arc::new(AtomicBool::new(false));
@@ -203,36 +207,44 @@ pub fn run() {
         .manage(SystemState(Mutex::new(System::new_all())))
         .setup(move |app| {
             let app_handle = app.handle().clone();
-            let app_handle_process = app.handle().clone();
             let pool_for_setup = Arc::clone(&db_pool_clone);
             let accumulators_for_monitor = Arc::clone(&process_accumulators);
-            
+
             // Setup window close event to trigger graceful shutdown
             let main_window = app.get_webview_window("main");
             if let Some(window) = main_window {
                 let shutdown_clone = Arc::clone(&shutdown_signal_monitor);
                 let accumulators_clone = Arc::clone(&process_accumulators);
                 let pool_clone = Arc::clone(&db_pool_clone);
-                
+
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
                         println!("[App] Close requested, triggering shutdown signal.");
                         shutdown_clone.store(true, Ordering::Relaxed);
-                        
+
                         // Save process stats to DB
                         if let Ok(pool_guard) = pool_clone.lock() {
                             if let Some(pool) = pool_guard.as_ref() {
-                                let stats = process_monitor::get_aggregated_stats(&accumulators_clone);
+                                let stats =
+                                    process_monitor::get_aggregated_stats(&accumulators_clone);
                                 if !stats.is_empty() {
-                                    println!("[App] Saving {} process records to history...", stats.len());
+                                    println!(
+                                        "[App] Saving {} process records to history...",
+                                        stats.len()
+                                    );
                                     // We need to block here to ensure save completes, but we can't await in sync closure
                                     // So we spawn a thread and join it, or just use block_on if available.
                                     // Since we are in a sync context and need to block exit, we use a new runtime or block_on.
                                     // However, tauri's async_runtime::block_on is available.
                                     let pool_ref = pool.clone();
                                     tauri::async_runtime::block_on(async move {
-                                        if let Err(e) = db::update_process_history(&pool_ref, stats).await {
-                                            eprintln!("[App] Failed to save process history: {}", e);
+                                        if let Err(e) =
+                                            db::update_process_history(&pool_ref, stats).await
+                                        {
+                                            eprintln!(
+                                                "[App] Failed to save process history: {}",
+                                                e
+                                            );
                                         } else {
                                             println!("[App] Process history saved successfully.");
                                         }
@@ -255,16 +267,19 @@ pub fn run() {
                         if let Ok(mut pool_guard) = pool_for_setup.lock() {
                             *pool_guard = Some(pool.clone());
                         }
-                        monitor::init_monitoring(pool, app_handle, reset_signal_monitor, shutdown_signal_monitor);
+                        monitor::init_monitoring(
+                            pool,
+                            app_handle,
+                            reset_signal_monitor,
+                            shutdown_signal_monitor,
+                            accumulators_for_monitor,
+                        );
                     }
                     Err(e) => {
                         eprintln!("Failed to initialize database: {}", e);
                     }
                 }
             });
-
-            // Initialize process I/O monitoring
-            process_monitor::init_process_monitoring(app_handle_process, accumulators_for_monitor, reset_signal_process);
 
             Ok(())
         })
