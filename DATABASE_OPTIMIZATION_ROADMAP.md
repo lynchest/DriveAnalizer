@@ -108,24 +108,24 @@ PRAGMA synchronous = NORMAL;    // ✅ Ayarlı (iyi)
 ## 📅 Uygulama Planı
 
 ### Faz 1: Temel Altyapı (1-2 gün)
-- [ ] Data retention policy modülü oluştur
-- [ ] Scheduled cleanup fonksiyonu yaz
-- [ ] PRAGMA ayarlarını optimize et
+- [x] Data retention policy modülü oluştur
+- [x] Scheduled cleanup fonksiyonu yaz
+- [x] PRAGMA ayarlarını optimize et
 
 ### Faz 2: Veritabanı Şeması İyileştirmesi (1-2 gün)
-- [ ] İndeks stratejisi geliştir
-- [ ] Archive mekanizması oluştur
-- [ ] Migration komut dosyası hazırla
+- [x] İndeks stratejisi geliştir
+- [x] Archive mekanizması oluştur
+- [x] Migration komut dosyası hazırla
 
 ### Faz 3: Performans Optimizasyonu (1 gün)
-- [ ] Batch insert işlemini refactor et
-- [ ] Query optimization
-- [ ] Periyodik maintenance rutini
+- [x] Batch insert işlemini refactor et
+- [x] Query optimization
+- [x] Periyodik maintenance rutini
 
 ### Faz 4: Monitoring ve Testing (1-2 gün)
-- [ ] Database size tracking
-- [ ] Cleanup effectiveness tests
-- [ ] Performance benchmarks
+- [x] Database size tracking
+- [x] Cleanup effectiveness tests
+- [x] Performance benchmarks
 
 ### Faz 5: Deployment (1 gün)
 - [ ] Kullanıcı bildirimi

@@ -14,6 +14,7 @@ const Settings: React.FC = () => {
         currentStats
     } = useStore();
     const [resetting, setResetting] = useState(false);
+    const [optimizing, setOptimizing] = useState(false);
     const [dbSize, setDbSize] = useState<number | null>(null);
     const [loadingDbSize, setLoadingDbSize] = useState(true);
     const [customWidth, setCustomWidth] = useState(windowSize.width.toString());
@@ -73,6 +74,26 @@ const Settings: React.FC = () => {
             alert('Sıfırlama sırasında bir hata oluştu.');
         } finally {
             setResetting(false);
+        }
+    };
+
+    const handleOptimizeDatabase = async () => {
+        if (!window.confirm('Veritabanı optimize edilecek (eski veriler silinecek ancak hiçbir veri kaybı olmayacak). Devam edilsin mi?')) return;
+        
+        setOptimizing(true);
+        try {
+            const response = await invoke<{ cleaned_records: number; freed_bytes: number }>('optimize_database');
+            
+            // Update database size display
+            await loadDatabaseSize();
+            
+            const freedMB = (response.freed_bytes / (1024 * 1024)).toFixed(2);
+            alert(`Optimizasyon başarılı!\n\n• Silinen eski kayıtlar: ${response.cleaned_records}\n• Boşaltılan alan: ${freedMB} MB`);
+        } catch (error) {
+            console.error('Optimization error:', error);
+            alert('Optimizasyon sırasında bir hata oluştu.');
+        } finally {
+            setOptimizing(false);
         }
     };
 
@@ -223,6 +244,13 @@ const Settings: React.FC = () => {
                 </div>
                 
                 <div className="maintenance-actions">
+                    <button 
+                        className="optimize-btn" 
+                        onClick={handleOptimizeDatabase}
+                        disabled={optimizing}
+                    >
+                        {optimizing ? 'Optimize ediliyor...' : '⚡ Veritabanını Optimize Et'}
+                    </button>
                     <button 
                         className="danger-btn" 
                         onClick={handleResetDatabase}

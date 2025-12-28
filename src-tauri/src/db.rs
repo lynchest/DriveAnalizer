@@ -26,11 +26,23 @@ pub async fn init_db(
         .connect(&db_url)
         .await?;
 
-    // Create persistent tables
+    // Optimize PRAGMA settings for better performance and reliability
     sqlx::query(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
-         CREATE TABLE IF NOT EXISTS process_history (
+         PRAGMA cache_size = -64000;
+         PRAGMA temp_store = MEMORY;
+         PRAGMA wal_autocheckpoint = 1000;
+         PRAGMA busy_timeout = 5000;"
+    )
+    .execute(&pool)
+    .await?;
+
+    println!("[DB] PRAGMA settings optimized");
+
+    // Create persistent tables
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS process_history (
             name TEXT PRIMARY KEY,
             read_bytes INTEGER NOT NULL DEFAULT 0,
             write_bytes INTEGER NOT NULL DEFAULT 0
@@ -42,12 +54,34 @@ pub async fn init_db(
             write_bytes INTEGER NOT NULL,
             read_speed INTEGER NOT NULL,
             write_speed INTEGER NOT NULL
-         );
-         CREATE INDEX IF NOT EXISTS idx_disk_stats_timestamp ON disk_stats(timestamp);",
+         );"
     )
     .execute(&pool)
     .await?;
 
+    // Create optimized indexes for better query performance
+    // Index 1: Timestamp in descending order for recent data queries
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_disk_stats_timestamp ON disk_stats(timestamp DESC);"
+    )
+    .execute(&pool)
+    .await?;
+
+    // Index 2: Process name for process history lookups
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_process_name ON process_history(name);"
+    )
+    .execute(&pool)
+    .await?;
+
+    // Index 3: Composite index for time-range queries with multiple columns
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_disk_stats_time_range ON disk_stats(timestamp DESC, read_bytes, write_bytes);"
+    )
+    .execute(&pool)
+    .await?;
+
+    println!("[DB] Indexes created successfully");
     println!("[DB] Database initialized successfully.");
 
     Ok(pool)

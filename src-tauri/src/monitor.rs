@@ -90,14 +90,14 @@ pub fn init_monitoring(
                 eprintln!("[Monitor] Failed to emit event: {}", e);
             }
 
-            // Emit Top Processes (Every 2nd tick)
+            // Emit Top Processes (Every tick)
             tick_count += 1;
-            if tick_count % 2 == 0 {
-                let process_stats = process_monitor.get_top_processes();
-                if let Err(e) = app.emit("top-processes", &process_stats) {
-                    eprintln!("[Monitor] Failed to emit top-processes: {}", e);
-                }
+            // if tick_count % 2 == 0 {
+            let process_stats = process_monitor.get_top_processes();
+            if let Err(e) = app.emit("top-processes", &process_stats) {
+                eprintln!("[Monitor] Failed to emit top-processes: {}", e);
             }
+            // }
 
             // Unified Flush - Every 10 seconds
             buffer.push(stat.clone());

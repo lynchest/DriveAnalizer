@@ -10,6 +10,8 @@ use tokio::sync::Notify;
 
 mod db;
 mod models;
+pub mod db_cleanup;
+pub mod scheduled_tasks;
 pub mod monitor;
 pub mod perf_counters;
 pub mod process_monitor;
@@ -185,7 +187,65 @@ async fn reset_database(
     })
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[tauri::command]
+async fn optimize_database(
+    db_pool: tauri::State<'_, DbPool>,
+) -> Result<serde_json::Value, String> {
+    let pool_opt = {
+        let guard = db_pool.0.lock().map_err(|e| format!("Lock error: {}", e))?;
+        guard.clone()
+    };
+
+    if let Some(pool) = pool_opt {
+        // Run cleanup with default retention policy (30 days)
+        let policy = db_cleanup::RetentionPolicy::default();
+        
+        let cleaned_records = db_cleanup::cleanup_old_data(&pool, &policy)
+            .await
+            .map_err(|e| format!("Cleanup error: {}", e))?;
+
+        // Get database size before VACUUM
+        let db_size_before = match std::fs::metadata(
+            std::path::PathBuf::from(&std::env::var("APPDATA").unwrap_or_default())
+                .join("driveanalizer")
+                .join("drive_analytics.db")
+        ) {
+            Ok(metadata) => metadata.len(),
+            Err(_) => 0,
+        };
+
+        // Run VACUUM to reclaim space
+        db_cleanup::vacuum_database(&pool)
+            .await
+            .map_err(|e| format!("VACUUM error: {}", e))?;
+
+        // Run ANALYZE for query optimization
+        db_cleanup::analyze_database(&pool)
+            .await
+            .map_err(|e| format!("ANALYZE error: {}", e))?;
+
+        // Get database size after VACUUM
+        let db_size_after = match std::fs::metadata(
+            std::path::PathBuf::from(&std::env::var("APPDATA").unwrap_or_default())
+                .join("driveanalizer")
+                .join("drive_analytics.db")
+        ) {
+            Ok(metadata) => metadata.len(),
+            Err(_) => 0,
+        };
+
+        let freed_bytes = db_size_before.saturating_sub(db_size_after);
+
+        Ok(serde_json::json!({
+            "cleaned_records": cleaned_records,
+            "freed_bytes": freed_bytes,
+            "db_size_before": db_size_before,
+            "db_size_after": db_size_after,
+        }))
+    } else {
+        Err("Database not initialized".to_string())
+    }
+}
 pub fn run() {
     // Create shared pool state
     let db_pool = DbPool(Arc::new(Mutex::new(None)));
@@ -252,6 +312,29 @@ pub fn run() {
                         if let Ok(mut pool_guard) = pool_for_setup.lock() {
                             *pool_guard = Some(pool.clone());
                         }
+                        
+                        // Start scheduled tasks
+                        let pool_for_cleanup = Arc::new(pool.clone());
+                        let pool_for_analyze = Arc::new(pool.clone());
+                        let pool_for_checkpoint = Arc::new(pool.clone());
+                        
+                        // Spawn cleanup scheduler (24 hours)
+                        tauri::async_runtime::spawn(
+                            scheduled_tasks::start_cleanup_scheduler(pool_for_cleanup)
+                        );
+                        
+                        // Spawn analyze scheduler (7 days)
+                        tauri::async_runtime::spawn(
+                            scheduled_tasks::start_analyze_scheduler(pool_for_analyze)
+                        );
+                        
+                        // Spawn WAL checkpoint scheduler (6 hours)
+                        tauri::async_runtime::spawn(
+                            scheduled_tasks::start_wal_checkpoint_scheduler(pool_for_checkpoint)
+                        );
+                        
+                        println!("[Schedulers] All database maintenance schedulers started");
+                        
                         monitor::init_monitoring(
                             pool,
                             app_handle,
@@ -275,6 +358,7 @@ pub fn run() {
             get_database_size,
             get_app_metrics,
             reset_database,
+            optimize_database,
             get_process_history,
             get_process_history_totals
         ])

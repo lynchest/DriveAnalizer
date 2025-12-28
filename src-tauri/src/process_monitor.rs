@@ -157,7 +157,32 @@ impl ProcessMonitor {
             .collect();
 
         stats.sort_by(|a, b| b.total_bytes.cmp(&a.total_bytes));
-        stats.truncate(50);
+
+        // Calculate totals before truncation to handle "Others"
+        let total_read: u64 = stats.iter().map(|s| s.read_bytes).sum();
+        let total_write: u64 = stats.iter().map(|s| s.write_bytes).sum();
+
+        if stats.len() > 50 {
+            stats.truncate(50);
+
+            let top_read: u64 = stats.iter().map(|s| s.read_bytes).sum();
+            let top_write: u64 = stats.iter().map(|s| s.write_bytes).sum();
+
+            let other_read = total_read.saturating_sub(top_read);
+            let other_write = total_write.saturating_sub(top_write);
+
+            if other_read > 0 || other_write > 0 {
+                stats.push(ProcessIOStat {
+                    pid: 0,
+                    name: "Others".to_string(),
+                    exe_path: None,
+                    read_bytes: other_read,
+                    write_bytes: other_write,
+                    total_bytes: other_read + other_write,
+                });
+            }
+        }
+
         stats
     }
 
