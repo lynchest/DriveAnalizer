@@ -10,8 +10,7 @@ const Settings: React.FC = () => {
         windowSize, setWindowSize, 
         dataDisplayMode, setDataDisplayMode,
         resetSessionData,
-        setAllTimeTotals,
-        currentStats
+        setAllTimeTotals
     } = useStore();
     const [resetting, setResetting] = useState(false);
     const [optimizing, setOptimizing] = useState(false);

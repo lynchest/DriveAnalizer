@@ -7,8 +7,7 @@ export function useDataSync() {
     const { 
         setTopProcesses, 
         setAllTimeTotals, 
-        setProcessHistory, 
-        dataDisplayMode 
+        setProcessHistory
     } = useStore();
 
     // Top processes event listener
