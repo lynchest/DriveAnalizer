@@ -56,6 +56,7 @@ const Chart: React.FC<ChartProps> = ({ data }) => {
                     grid: { show: true, stroke: "#333", width: 1 },
                     ticks: { show: true, stroke: "#333", width: 1 },
                     values: (_self, ticks) => ticks.map(t => formatBytes(t)),
+                    size: 110,
                 }
             ],
             scales: {

@@ -8,11 +8,9 @@ Built on the **Tauri v2** architecture, it combines the flexibility of modern we
 
 ## 📸 Screenshots
 
-> *Screenshots of the application interface will be added here.*
-
 | Dashboard (Disk I/O) | Process Monitor (Top Processes) |
 |:---:|:---:|
-| ![Dashboard](https://via.placeholder.com/600x400?text=Dashboard+Screenshot) | ![Processes](https://via.placeholder.com/600x400?text=Processes+Screenshot) |
+| ![Dashboard](./public/assets/dashboard.png) | ![Processes](./public/assets/top-processes.png) |
 
 ---
 

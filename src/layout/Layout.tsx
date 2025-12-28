@@ -94,13 +94,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     >
                         Settings
                     </a>
-                    <button 
+                    {/* <button 
                         onClick={handleVerifyData}
                         className={`nav-item nav-item--check ${verificationStatus === 'valid' ? 'nav-item--valid' : verificationStatus === 'invalid' ? 'nav-item--invalid' : ''}`}
                         title="Verileri Doğrula"
                     >
                         {verificationStatus === 'valid' ? '✅' : verificationStatus === 'invalid' ? '❌' : '🔍'} Check Data
-                    </button>
+                    </button> */}
                 </nav>
 
                 <div className="layout__footer">

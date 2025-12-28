@@ -2,7 +2,7 @@
     background: rgba(30, 30, 35, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
-    padding: 1.5rem 1.5rem 2.5rem 1.5rem; /* Bottom padding increased */
+    padding: 1.5rem 1.5rem 2.5rem 1rem; /* Reduced left padding to compensate for larger axis size */
     margin-top: 1.5rem;
     width: 100%;
     min-width: 0; 
